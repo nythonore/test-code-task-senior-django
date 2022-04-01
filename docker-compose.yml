@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  api:
+    container_name: reservation-api
+    image: reservation-api
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    volumes:
+      - ./:/app
+    ports:
+      - 8000:8000
