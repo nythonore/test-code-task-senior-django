@@ -1,7 +1,12 @@
 from django.db import models
 
+class Rental(models.Model):
+  name = models.CharField(max_length=40)
+
 class Reservation(models.Model):
-  rental_name = models.CharField(max_length=40)
   check_in = models.DateField()
   check_out = models.DateField()
-  previous_reservation_id = models.BigIntegerField(blank=True, null=True)
+  rental = models.ForeignKey(Rental, on_delete=models.CASCADE, related_name='rental')
+
+  class Meta:
+    ordering = ['id']

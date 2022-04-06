@@ -2,30 +2,36 @@ import pytest
 from rest_framework.test import APIClient
 
 pytestmark = pytest.mark.django_db
-client = APIClient()  
+client = APIClient()
 
-def test_list_reservations(db, reservation_factory):
-  for i in range(10):
-    reservation_factory(rental_name=f'Rental {i}')
-  
+def test_create_reservation_validation(db):
+  responseName = client.post('/reservation/', {'check_in': '2022-01-01', 'check_out': '2022-01-13'})
+  responseDate = client.post('/reservation/', {'name': 'Rental 1', 'check_in': '2022-01', 'check_out': '2022-01-13'})
+
+  assert responseName.status_code == 400
+  assert responseName.json()['name'][0] == 'This field is required.'
+
+  assert responseDate.status_code == 400
+  assert responseDate.json()['check_in'][0] == 'Date has wrong format. Use one of these formats instead: YYYY-MM-DD.'
+
+def test_reservation(db):
+  # add data chronologically
+  client.post('/reservation/', {'rental_name': 'Rental 1', 'check_in': '2022-01-01', 'check_out': '2022-01-13'})
+  client.post('/reservation/', {'rental_name': 'Rental 2', 'check_in': '2022-01-02', 'check_out': '2022-01-20'})
+  client.post('/reservation/', {'rental_name': 'Rental 1', 'check_in': '2022-01-20', 'check_out': '2022-02-10'})
+  client.post('/reservation/', {'rental_name': 'Rental 2', 'check_in': '2022-01-20', 'check_out': '2022-02-11'})
+  client.post('/reservation/', {'rental_name': 'Rental 1', 'check_in': '2022-02-20', 'check_out': '2022-03-10'})
+
   response = client.get('/reservation', follow=True)
 
-  assert len(response.json()) == 10
+  rentals = []
+  previous_reservation_id = None
 
-def test_create_reservation(db):
-  key = 'previous_reservation_id'
-  data = {'check_in': '2022-01-01', 'check_out': '2022-01-01'}
-  
-  response1 = client.post('/reservation/', {**data, 'rental_name': 'Rental 1'})
-  response2 = client.post('/reservation/', {**data, 'rental_name': 'Rental 1'})
-  response3 = client.post('/reservation/', {**data, 'rental_name': 'Rental 1'})
+  for reservation in response.json():
+    if reservation['rental_name'] not in rentals:
+      previous_reservation_id = None
+      rentals.append(reservation['rental_name'])
+    
+    assert previous_reservation_id == reservation['previous_reservation_id']
 
-  response4 = client.post('/reservation/', {**data, 'rental_name': 'Rental 2'})
-  response5 = client.post('/reservation/', {**data, 'rental_name': 'Rental 2'})
-
-  assert response1.json()[key] == None
-  assert response2.json()[key] == response1.json()['id']
-  assert response3.json()[key] == response2.json()['id']
-
-  assert response4.json()[key] == None
-  assert response5.json()[key] == response4.json()['id']
+    previous_reservation_id = reservation['id']

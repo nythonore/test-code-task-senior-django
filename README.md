@@ -58,7 +58,7 @@ GET - http://localhost:8000/reservation/ (List All Reservations)
 ```
 POST - http://localhost:8000/reservation/ (Create a Reservation)
 {
-    "rental_name": "Rental 1",
+    "name": "Rental 1", ## rental name field
     "check_in": "2000-01-01",
     "check_out": "2000-01-01"
 }
