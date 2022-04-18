@@ -1,5 +1,6 @@
 import pytest
 from rest_framework.test import APIClient
+from reservation.models import Rental, Reservation
 
 pytestmark = pytest.mark.django_db
 client = APIClient()
@@ -14,24 +15,26 @@ def test_create_reservation_validation(db):
   assert responseDate.status_code == 400
   assert responseDate.json()['check_in'][0] == 'Date has wrong format. Use one of these formats instead: YYYY-MM-DD.'
 
-def test_reservation(db):
-  # add data chronologically
-  client.post('/reservation/', {'rental_name': 'Rental 1', 'check_in': '2022-01-01', 'check_out': '2022-01-13'})
-  client.post('/reservation/', {'rental_name': 'Rental 2', 'check_in': '2022-01-02', 'check_out': '2022-01-20'})
-  client.post('/reservation/', {'rental_name': 'Rental 1', 'check_in': '2022-01-20', 'check_out': '2022-02-10'})
-  client.post('/reservation/', {'rental_name': 'Rental 2', 'check_in': '2022-01-20', 'check_out': '2022-02-11'})
-  client.post('/reservation/', {'rental_name': 'Rental 1', 'check_in': '2022-02-20', 'check_out': '2022-03-10'})
+def test_create_reservation(db):
+  response = client.post('/reservation/', {'name': 'Rental 1', 'check_in': '2022-01-12', 'check_out': '2022-01-15'})
+  
+  assert response.json()['detail'] == 'Reservation created'
+
+def test_create_reservation(db):
+  rental1 = Rental.objects.create(name='Rental 1')
+  rental2 = Rental.objects.create(name='Rental 2')
+
+  Reservation.objects.create(rental=rental1, check_in='2022-01-12', check_out='2022-01-15')
+  Reservation.objects.create(rental=rental1, check_in='2021-12-12', check_out='2021-12-15')
+  Reservation.objects.create(rental=rental1, check_in='2021-11-12', check_out='2021-11-15')
+
+  Reservation.objects.create(rental=rental2, check_in='2022-01-12', check_out='2022-01-15')
+  Reservation.objects.create(rental=rental2, check_in='2021-12-12', check_out='2021-12-15')
 
   response = client.get('/reservation', follow=True)
 
-  rentals = []
-  previous_reservation_id = None
-
-  for reservation in response.json():
-    if reservation['rental_name'] not in rentals:
-      previous_reservation_id = None
-      rentals.append(reservation['rental_name'])
-    
-    assert previous_reservation_id == reservation['previous_reservation_id']
-
-    previous_reservation_id = reservation['id']
+  sortedData = sorted(response.json(), key=lambda q: q['rental'])
+  
+  for index, data in enumerate(sortedData):
+    if data['previous_reservation_id'] == None: continue
+    assert data['previous_reservation_id'] == sortedData[index + 1]['id']

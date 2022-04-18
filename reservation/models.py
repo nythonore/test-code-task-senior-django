@@ -9,4 +9,4 @@ class Reservation(models.Model):
   rental = models.ForeignKey(Rental, on_delete=models.CASCADE, related_name='rental')
 
   class Meta:
-    ordering = ['id']
+    ordering = ['-check_in']

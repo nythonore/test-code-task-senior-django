@@ -10,11 +10,15 @@ class RentalSerializer(serializers.ModelSerializer):
     return Rental.objects.get_or_create(**data)
 
 class ReservationSerializer(serializers.ModelSerializer):
-  rental = RentalSerializer(read_only=True)
+  rental = serializers.SerializerMethodField()
+  previous_reservation_id = serializers.SerializerMethodField()
+
+  def get_rental(self, obj):
+    return obj.rental.name
+
+  def get_previous_reservation_id(self, obj):
+    return obj.previous_reservation_id
 
   class Meta:
     model = Reservation
-    fields = ['id', 'rental', 'check_in', 'check_out']
-  
-  def create(self, data):
-    return Reservation.objects.create(**data)
+    fields = ['id', 'rental', 'check_in', 'check_out', 'previous_reservation_id']
